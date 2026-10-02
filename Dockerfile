@@ -17,7 +17,10 @@ RUN pip install -r requirements.txt
 
 COPY bot.py storage_to.py ./
 
-RUN useradd --create-home --uid 1000 bot
+# /app is root-owned, so the bot user can't create its logs/ dir at runtime; make it here.
+RUN useradd --create-home --uid 1000 bot \
+    && mkdir -p /app/logs \
+    && chown bot:bot /app/logs
 USER bot
 
 CMD ["python", "bot.py"]

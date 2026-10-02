@@ -54,12 +54,17 @@ def setup_logging() -> None:
     # Adds a stderr handler to the root logger, so every logger below shows up in the terminal.
     discord.utils.setup_logging(level=level, root=True)
 
-    os.makedirs(LOG_DIR, exist_ok=True)
-    file_handler = RotatingFileHandler(
-        os.path.join(LOG_DIR, "bot.log"), maxBytes=5 * 1024 * 1024, backupCount=3, encoding="utf-8"
-    )
-    file_handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)-8s %(name)s: %(message)s"))
-    logging.getLogger().addHandler(file_handler)
+    try:
+        os.makedirs(LOG_DIR, exist_ok=True)
+        file_handler = RotatingFileHandler(
+            os.path.join(LOG_DIR, "bot.log"), maxBytes=5 * 1024 * 1024, backupCount=3, encoding="utf-8"
+        )
+    except OSError as e:
+        # A missing log file shouldn't stop the bot; the terminal output still works.
+        log.warning("File logging disabled, can't write to %s: %s", LOG_DIR, e)
+    else:
+        file_handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)-8s %(name)s: %(message)s"))
+        logging.getLogger().addHandler(file_handler)
 
     # discord.py's gateway/HTTP and asyncio's debug output drown everything else out.
     for noisy in ("discord", "asyncio"):

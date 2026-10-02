@@ -7,8 +7,15 @@ services:
     # Start again after a crash or a reboot, unless you stopped it yourself.
     restart: unless-stopped
     init: true
+    # Keeps logs/bot.log across rebuilds. A named volume inherits the image's bot-owned
+    # /app/logs; a host bind mount would be root-owned and break logging again.
+    volumes:
+      - logs:/app/logs
     logging:
       driver: json-file
       options:
         max-size: "10m"
         max-file: "3"
+
+volumes:
+  logs:
