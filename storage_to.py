@@ -2,6 +2,7 @@
 
 import logging
 import os
+import time
 
 import aiohttp
 
@@ -31,6 +32,7 @@ class StorageToClient:
         if owner_token:
             headers["X-Owner-Token"] = owner_token
         async with self._session.request(method, API_BASE + path, json=json, headers=headers) as resp:
+            log.debug("%s %s -> %d", method, path, resp.status)
             try:
                 body = await resp.json(content_type=None)
             except (aiohttp.ContentTypeError, ValueError):
@@ -55,15 +57,24 @@ class StorageToClient:
         """Upload a local file and return storage.to's `file` object (id, url, human_size, expires_at)."""
         size = os.path.getsize(path)
         meta = {"filename": filename, "content_type": content_type, "size": size}
+        started = time.perf_counter()
 
         init = await self._api("POST", "/upload/init", json=meta)
-        if init.get("type") == "multipart":
+        multipart = init.get("type") == "multipart"
+        log.debug("Uploading %r (%.1f MB) as a %s upload", filename, size / 1e6, init.get("type"))
+        if multipart:
             await self._upload_multipart(path, init)
         else:
             await self._upload_single(path, init)
 
         confirmed = await self._api("POST", "/upload/confirm", json={**meta, "r2_key": init["r2_key"]})
         file = confirmed["file"]
+        elapsed = time.perf_counter() - started
+        log.info(
+            "Uploaded %r (%s) in %.1fs (%.1f MB/s%s) -> %s",
+            filename, file.get("human_size"), elapsed, size / 1e6 / max(elapsed, 0.001),
+            f", {init['total_parts']} parts" if multipart else "", file.get("url"),
+        )
 
         if expiry_days and expiry_days != DEFAULT_EXPIRY_DAYS:
             try:
@@ -113,6 +124,7 @@ class StorageToClient:
                 for n in range(1, total_parts + 1):
                     resp = await self._put(urls[n], f.read(part_size))
                     parts.append({"partNumber": n, "etag": resp.headers.get("ETag", "")})
+                    log.debug("Multipart %s: part %d/%d uploaded", upload_id, n, total_parts)
 
             await self._api(
                 "POST",
@@ -121,6 +133,7 @@ class StorageToClient:
                 owner_token=owner_token,
             )
         except Exception:
+            log.warning("Multipart upload %s failed, aborting it", upload_id)
             try:
                 await self._api("POST", "/upload/abort", json={"upload_id": upload_id}, owner_token=owner_token)
             except StorageToError as exc:

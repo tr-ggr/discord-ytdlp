@@ -1,6 +1,8 @@
 # discord-ytdlp
 
-A Discord bot that downloads YouTube videos with [yt-dlp](https://github.com/yt-dlp/yt-dlp) as a **320 kbps MP3** or an **MP4** (up to 4K). It uploads the file to [storage.to](https://storage.to) and replies with a download link, so you never hit Discord's attachment size limit. The link can be posted in the channel or sent to your DMs.
+A Discord bot that downloads YouTube videos with [yt-dlp](https://github.com/yt-dlp/yt-dlp) as a **320 kbps MP3** or an **MP4** (up to 4K). If the file fits under Discord's upload limit, the bot attaches it to its reply. Bigger files are uploaded to [storage.to](https://storage.to) and the bot replies with a download link instead, so size is never a problem. The result can be posted in the channel or sent to your DMs.
+
+Discord's upload limit is 10 MB in DMs and in servers with no boosts or boost level 1, 50 MB at level 2, and 100 MB at level 3. Most MP3s fit; longer or high-resolution videos usually go to storage.to.
 
 ## Commands
 
@@ -8,10 +10,10 @@ The prefix is `$yt-`.
 
 | Command | What it does |
 | --- | --- |
-| `$yt-mp3 <url>` | 320 kbps MP3. The link is posted in the channel |
-| `$yt-dm <url>` | Same as above, but the link is sent to your DMs |
-| `$yt-mp4 <url> [quality]` | MP4. The link is posted in the channel |
-| `$yt-dmmp4 <url> [quality]` | Same as above, but the link is sent to your DMs |
+| `$yt-mp3 <url>` | 320 kbps MP3, posted in the channel |
+| `$yt-dm <url>` | Same as above, but sent to your DMs |
+| `$yt-mp4 <url> [quality]` | MP4, posted in the channel |
+| `$yt-dmmp4 <url> [quality]` | Same as above, but sent to your DMs |
 | `$yt-help` | Shows the command list |
 
 **Quality** can be `360`, `480`, `720`, `1080`, `1440` (`2k`), or `2160` (`4k`). A trailing `p` is fine (`720p`). The default is `DEFAULT_VIDEO_QUALITY` (1080). If a video doesn't have the quality you asked for, you get the best one below it.
@@ -27,7 +29,7 @@ Limits: single videos only (no playlists, live streams, or premieres). Videos lo
 1. Go to the [Discord Developer Portal](https://discord.com/developers/applications) → **New Application**.
 2. **Bot** tab → **Reset Token** → copy the token.
 3. **Bot** tab → under *Privileged Gateway Intents*, turn on **Message Content Intent**. The bot can't see commands without it.
-4. **OAuth2 → URL Generator**: tick the `bot` scope and the permissions **Send Messages**, **Embed Links**, **Add Reactions**, and **Read Message History**. Open the generated URL to invite the bot to your server.
+4. **OAuth2 → URL Generator**: tick the `bot` scope and the permissions **Send Messages**, **Embed Links**, **Attach Files**, **Add Reactions**, and **Read Message History**. Without **Attach Files**, every download is sent as a storage.to link. Open the generated URL to invite the bot to your server.
 
 ### 2. Get a storage.to API key
 
@@ -44,8 +46,8 @@ Then fill in `.env`:
 | Variable | Required | Default | Description |
 | --- | --- | --- | --- |
 | `DISCORD_TOKEN` | yes | | Bot token from the Developer Portal |
-| `STORAGE_TO_API_KEY` | yes | | storage.to personal API token |
-| `STORAGE_TO_EXPIRY_DAYS` | no | `7` | How long download links stay alive (1–7 days on a free account) |
+| `STORAGE_TO_API_KEY` | yes | | storage.to personal API token, used for files too big to attach |
+| `STORAGE_TO_EXPIRY_DAYS` | no | `7` | How long storage.to download links stay alive (1–7 days on a free account) |
 | `MAX_DURATION_MINUTES` | no | `90` | Videos longer than this are refused |
 | `DEFAULT_VIDEO_QUALITY` | no | `1080` | Default resolution for `mp4` / `dmmp4` |
 
