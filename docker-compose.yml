@@ -1,0 +1,14 @@
+services:
+  bot:
+    build: .
+    image: discord-ytdlp
+    container_name: discord-ytdlp
+    env_file: .env
+    # Start again after a crash or a reboot, unless you stopped it yourself.
+    restart: unless-stopped
+    init: true
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
